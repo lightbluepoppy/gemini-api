@@ -34,6 +34,9 @@ func main() {
 	// Todo削除エンドポイント
 	router.DELETE("/todos/:id", deleteTodo)
 
+	// Todoをすべて削除するエンドポイント
+	router.DELETE("/todos", deleteAllTodos)
+
 	router.Run(":8080")
 }
 
@@ -114,10 +117,15 @@ func deleteTodo(ctx *gin.Context) {
 	for index, todo := range todos {
 		if todo.ID == id {
 			todos = append(todos[:index], todos[index+1:]...)
-			ctx.Status(http.StatusOK)
+			ctx.JSON(http.StatusOK, todos)
 			return
 		}
 	}
 
 	ctx.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+}
+
+func deleteAllTodos(ctx *gin.Context) {
+	todos = todos[:0]
+	ctx.JSON(http.StatusOK, todos)
 }
