@@ -3,14 +3,17 @@ package main
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Todo構造体
 type Todo struct {
-	ID   int    `json:"id"`
-	Task string `json:"task"`
+	ID          int       `json:"id"`
+	Task        string    `json:"task"`
+	CreatedTime time.Time `json:"createdTime"`
+	UpdatedTime time.Time `json:"updatedTime"`
 }
 
 var todos []Todo
@@ -55,6 +58,8 @@ func createTodo(ctx *gin.Context) {
 
 	newTodo.ID = idCounter
 	idCounter++
+	newTodo.CreatedTime = time.Now()
+	newTodo.UpdatedTime = time.Now()
 	todos = append(todos, newTodo)
 	ctx.JSON(http.StatusCreated, newTodo)
 }
@@ -97,6 +102,7 @@ func updateTodo(ctx *gin.Context) {
 	for index := range todos {
 		if todos[index].ID == id {
 			todos[index].Task = updatedTodo.Task
+			todos[index].UpdatedTime = time.Now()
 			ctx.JSON(http.StatusOK, todos[index])
 			return
 		}
