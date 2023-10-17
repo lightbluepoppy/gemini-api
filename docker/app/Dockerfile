@@ -9,4 +9,7 @@ RUN apk upgrade --update && \
 RUN go get -u github.com/cosmtrek/air && \
     go build -o /go/bin/air github.com/cosmtrek/air
 
+# install sqlc
+RUN go install github.com/sqlc-dev/sqlc
+
 CMD ["air", "-c", ".air.toml"]

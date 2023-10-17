@@ -11,10 +11,15 @@ import (
 // Todo構造体
 type Todo struct {
 	ID          int       `json:"id"`
-	Task        string    `json:"task"`
+	Title       string    `json:"title"`
 	CreatedTime time.Time `json:"createdTime"`
 	UpdatedTime time.Time `json:"updatedTime"`
 }
+
+// type TaskHandler struct {
+// 	todos []Todo
+// 	idCounter int
+// }
 
 var todos []Todo
 var idCounter = 1
@@ -101,7 +106,7 @@ func updateTodo(ctx *gin.Context) {
 	// Todoの更新
 	for index := range todos {
 		if todos[index].ID == id {
-			todos[index].Task = updatedTodo.Task
+			todos[index].Title = updatedTodo.Title
 			todos[index].UpdatedTime = time.Now()
 			ctx.JSON(http.StatusOK, todos[index])
 			return
