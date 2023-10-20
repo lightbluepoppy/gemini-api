@@ -1,4 +1,3 @@
-
 -- name: GetTodos :many
 SELECT id, title, created_time, updated_time
 FROM todos;
