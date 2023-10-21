@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/lightbluepoppy/gemini-api/src/db/db"
 )
 
 // Todo構造体
@@ -23,6 +28,25 @@ type Todo struct {
 
 var todos []Todo
 var idCounter = 1
+
+func run() {
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(context.Background())
+
+	q := db.New(conn)
+
+	todos, err := q.GetTodos(context.Background())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "GetAuthor failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(todos)
+}
 
 func main() {
 	router := gin.Default()
@@ -46,6 +70,8 @@ func main() {
 	router.DELETE("/todos", deleteAllTodos)
 
 	router.Run(":8080")
+
+	run()
 }
 
 // Todo一覧を取得するハンドラ
