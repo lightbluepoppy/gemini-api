@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"api/todoHandlers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,14 +18,15 @@ type Todo struct {
 	UpdatedTime time.Time `json:"updatedTime"`
 }
 
-var todos []Todo
+// var todos []Todo
 var idCounter = 1
 
 func main() {
+	h := todoHandlers.TodoHandlerFunc()
 	router := gin.Default()
 
 	// Todo一覧を取得するエンドポイント
-	router.GET("/todos", getTodos)
+	router.GET("/todos", h.GetTodos)
 
 	// Todo作成エンドポイント
 	router.POST("/todos", createTodo)
@@ -43,9 +46,9 @@ func main() {
 	router.Run(":8080")
 }
 
-func getTodos(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, todos)
-}
+// func getTodos(ctx *gin.Context) {
+// 	ctx.JSON(http.StatusOK, todos)
+// }
 
 func createTodo(ctx *gin.Context) {
 	var newTodo Todo
