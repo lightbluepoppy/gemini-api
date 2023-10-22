@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 )
 
 type Todo struct {
@@ -25,6 +26,7 @@ type TodoHandler struct {
 }
 
 func TodoHandlerFunc() *TodoHandler {
+	godotenv.Load(".env")
 	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)

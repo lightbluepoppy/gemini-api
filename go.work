@@ -2,6 +2,6 @@ go 1.21.3
 
 use (
   ./api
-  ./cmd/main.go
+  ./cmd
   ./database
 )

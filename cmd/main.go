@@ -18,7 +18,7 @@ type Todo struct {
 	UpdatedTime time.Time `json:"updatedTime"`
 }
 
-// var todos []Todo
+var todos []Todo
 var idCounter = 1
 
 func main() {
