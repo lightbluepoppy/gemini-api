@@ -5,9 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"api/todoHandlers"
-
 	"github.com/gin-gonic/gin"
+	"github.com/lightbluepoppy/gemini-api/api/todoHandlers"
 )
 
 // Todo構造体
