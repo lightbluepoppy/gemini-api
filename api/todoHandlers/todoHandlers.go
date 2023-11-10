@@ -16,14 +16,18 @@ import (
 type Todo struct {
 	ID          int       `json:"id"`
 	Title       string    `json:"title"`
-	CreatedTime time.Time `json:"createdTime"`
-	UpdatedTime time.Time `json:"updatedTime"`
+	CreatedTime time.Time `json:"created_time"`
+	UpdatedTime time.Time `json:"updated_time"`
 }
 
 type TodoHandler struct {
 	DB        *dbModules.Queries
 	IDCounter int
 	Todos     []Todo
+}
+
+type HandlerStrategy struct {
+	// GetTodos(c *gin.Context) ([]Todo, error)
 }
 
 func TodoHandlerFunc() *TodoHandler {
@@ -42,19 +46,19 @@ func TodoHandlerFunc() *TodoHandler {
 	}
 }
 
-func (t *TodoHandler) GetTodos(ctx *gin.Context) {
-	todos, err := t.DB.GetTodos(ctx)
+func (t *TodoHandler) GetTodos(c *gin.Context) {
+	todos, err := t.DB.GetTodos(c)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, todos)
+	c.JSON(http.StatusOK, todos)
 }
 
-func (t *TodoHandler) CreateTodo(ctx *gin.Context) {
+func (t *TodoHandler) CreateTodo(c *gin.Context) {
 	var newTodo Todo
-	if err := ctx.ShouldBindJSON(&newTodo); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&newTodo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -63,5 +67,5 @@ func (t *TodoHandler) CreateTodo(ctx *gin.Context) {
 	newTodo.CreatedTime = time.Now()
 	newTodo.UpdatedTime = time.Now()
 	t.Todos = append(t.Todos, newTodo)
-	ctx.JSON(http.StatusCreated, newTodo)
+	c.JSON(http.StatusCreated, newTodo)
 }

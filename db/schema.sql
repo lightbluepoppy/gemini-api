@@ -1,6 +1,6 @@
 CREATE TABLE todos (
     id SERIAL PRIMARY KEY,
-    title TEXT,
-    created_time TIMESTAMP,
-    updated_time TIMESTAMP
+    title TEXT NOT NULL,
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

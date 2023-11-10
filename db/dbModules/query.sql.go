@@ -7,24 +7,16 @@ package dbModules
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createTodo = `-- name: CreateTodo :one
 INSERT INTO todos (title, created_time, updated_time)
-VALUES ($1, $2, $3)
+VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING id, title, created_time, updated_time
 `
 
-type CreateTodoParams struct {
-	Title       pgtype.Text
-	CreatedTime pgtype.Timestamp
-	UpdatedTime pgtype.Timestamp
-}
-
-func (q *Queries) CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error) {
-	row := q.db.QueryRow(ctx, createTodo, arg.Title, arg.CreatedTime, arg.UpdatedTime)
+func (q *Queries) CreateTodo(ctx context.Context, title string) (Todo, error) {
+	row := q.db.QueryRow(ctx, createTodo, title)
 	var i Todo
 	err := row.Scan(
 		&i.ID,
@@ -104,17 +96,16 @@ func (q *Queries) GetTodos(ctx context.Context) ([]Todo, error) {
 
 const updateTodo = `-- name: UpdateTodo :exec
 UPDATE todos
-SET title = $1, updated_time = $2
-WHERE id = $3
+SET title = $1, updated_time = CURRENT_TIMESTAMP
+WHERE id = $2
 `
 
 type UpdateTodoParams struct {
-	Title       pgtype.Text
-	UpdatedTime pgtype.Timestamp
-	ID          int32
+	Title string
+	ID    int32
 }
 
 func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) error {
-	_, err := q.db.Exec(ctx, updateTodo, arg.Title, arg.UpdatedTime, arg.ID)
+	_, err := q.db.Exec(ctx, updateTodo, arg.Title, arg.ID)
 	return err
 }

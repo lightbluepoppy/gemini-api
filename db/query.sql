@@ -4,7 +4,7 @@ FROM todos;
 
 -- name: CreateTodo :one
 INSERT INTO todos (title, created_time, updated_time)
-VALUES ($1, $2, $3)
+VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING id, title, created_time, updated_time;
 
 -- name: GetTodoByID :one
@@ -14,8 +14,8 @@ WHERE id = $1;
 
 -- name: UpdateTodo :exec
 UPDATE todos
-SET title = $1, updated_time = $2
-WHERE id = $3;
+SET title = $1, updated_time = CURRENT_TIMESTAMP
+WHERE id = $2;
 
 -- name: DeleteTodo :exec
 DELETE FROM todos

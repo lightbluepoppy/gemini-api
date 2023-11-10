@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes: 
       - db-store:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/init.sql
   pgadmin:
     container_name: pgadmin4
     image: dpage/pgadmin4:7.8

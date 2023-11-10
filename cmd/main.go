@@ -1,35 +1,60 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lightbluepoppy/gemini-api/api/todoHandlers"
+	"github.com/jackc/pgx/v5"
+	conf "github.com/lightbluepoppy/gemini-api/config"
+	db "github.com/lightbluepoppy/gemini-api/db/dbModules"
+	// "github.com/lightbluepoppy/gemini-api/api/todoHandlers"
 )
 
 // Todo構造体
 type Todo struct {
 	ID          int       `json:"id"`
 	Title       string    `json:"title"`
-	CreatedTime time.Time `json:"createdTime"`
-	UpdatedTime time.Time `json:"updatedTime"`
+	CreatedTime time.Time `json:"created_time"`
+	UpdatedTime time.Time `json:"updated_time"`
 }
 
 var todos []Todo
 var idCounter = 1
 
 func main() {
-	h := todoHandlers.TodoHandlerFunc()
+	var config conf.Config
+	config = conf.LoadConfig("dev", "./env")
+
+	config.DBURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		config.DBUsername,
+		config.DBPassword,
+		config.DBHost,
+		config.DBPort,
+		config.DBName,
+	)
+
+	conn, err := pgx.Connect(context.Background(), config.DBURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(context.Background())
+	q := db.New(conn)
+
 	router := gin.Default()
+	router.ForwardedByClientIP = true
+	router.SetTrustedProxies([]string{"127.0.0.1"})
 
 	// Todo一覧を取得するエンドポイント
-	router.GET("/todos", h.GetTodos)
+	router.GET("/todos", func(c *gin.Context) { getTodos(c, q) })
 
 	// Todo作成エンドポイント
-	router.POST("/todos", createTodo)
-
+	router.POST("/todos", func(c *gin.Context) { createTodo(c, q) })
 	// Todo取得エンドポイント
 	router.GET("/todos/:id", getTodoByID)
 
@@ -49,19 +74,47 @@ func main() {
 // 	ctx.JSON(http.StatusOK, todos)
 // }
 
-func createTodo(ctx *gin.Context) {
-	var newTodo Todo
-	if err := ctx.ShouldBindJSON(&newTodo); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// func getTodos(q) {
+// }
+
+// func createTodo(ctx *gin.Context) {
+// var newTodo Todo
+// if err := ctx.ShouldBindJSON(&newTodo); err != nil {
+// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 	return
+// }
+
+// newTodo.ID = idCounter
+// idCounter++
+// newTodo.CreatedTime = time.Now()
+// newTodo.UpdatedTime = time.Now()
+// todos = append(todos, newTodo)
+// ctx.JSON(http.StatusCreated, newTodo)
+// }
+
+func getTodos(c *gin.Context, q *db.Queries) {
+	todos, err := q.GetTodos(context.Background())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todos)
+}
+
+func createTodo(c *gin.Context, q *db.Queries) {
+	var req db.Todo
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	newTodo.ID = idCounter
-	idCounter++
-	newTodo.CreatedTime = time.Now()
-	newTodo.UpdatedTime = time.Now()
-	todos = append(todos, newTodo)
-	ctx.JSON(http.StatusCreated, newTodo)
+	todo, err := q.CreateTodo(c, req.Title)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, todo)
 }
 
 func getTodoByID(ctx *gin.Context) {

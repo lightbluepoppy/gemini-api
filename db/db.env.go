@@ -3,16 +3,30 @@ package db
 import (
 	"fmt"
 	"os"
+
+	conf "github.com/lightbluepoppy/gemini-api/config"
 )
 
 func DBENV() string {
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbDBName := os.Getenv("DB_DBNAME")
+	var (
+		config conf.Config
+	)
 
-	dbURL := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbDBName)
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" || env == "dev" {
 
-	return dbURL
+		// set up logger for dev
+		env = "dev"
+		config = conf.LoadConfig(env, "./env")
+	}
+
+	config.DBURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		config.DBUsername,
+		config.DBPassword,
+		config.DBHost,
+		config.DBPort,
+		config.DBName,
+	)
+
+	return config.DBURL
 }

@@ -10,7 +10,7 @@ import (
 
 type Todo struct {
 	ID          int32
-	Title       pgtype.Text
+	Title       string
 	CreatedTime pgtype.Timestamp
 	UpdatedTime pgtype.Timestamp
 }
