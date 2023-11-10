@@ -15,3 +15,10 @@ func Connect(config config.Config) *pgx.Conn {
 	}
 	return conn
 }
+
+func Close(conn *pgx.Conn) {
+	err := conn.Close(context.Background())
+	if err != nil {
+		log.Fatalf("Unable to close connection: %v\n", err)
+	}
+}

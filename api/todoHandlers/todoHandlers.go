@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/lightbluepoppy/gemini-api/db"
-	"github.com/lightbluepoppy/gemini-api/db/dbModules"
+	"github.com/lightbluepoppy/gemini-api/db/sqlc"
 )
 
 type Todo struct {
@@ -21,7 +21,7 @@ type Todo struct {
 }
 
 type TodoHandler struct {
-	DB        *dbModules.Queries
+	DB        *sqlc.Queries
 	IDCounter int
 	Todos     []Todo
 }
@@ -39,7 +39,7 @@ func TodoHandlerFunc() *TodoHandler {
 	}
 	defer conn.Close(context.Background())
 
-	q := dbModules.New(conn)
+	q := sqlc.New(conn)
 	return &TodoHandler{
 		DB:        q,
 		IDCounter: 0,

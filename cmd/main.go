@@ -1,17 +1,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	conf "github.com/lightbluepoppy/gemini-api/config"
-	db "github.com/lightbluepoppy/gemini-api/db/dbModules"
+	"github.com/lightbluepoppy/gemini-api/db"
+	"github.com/lightbluepoppy/gemini-api/db/sqlc"
 	// "github.com/lightbluepoppy/gemini-api/api/todoHandlers"
 )
 
@@ -29,22 +27,10 @@ var idCounter = 1
 func main() {
 	var config conf.Config
 	config = conf.LoadConfig("dev", "./env")
-
-	config.DBURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		config.DBUsername,
-		config.DBPassword,
-		config.DBHost,
-		config.DBPort,
-		config.DBName,
-	)
-
-	conn, err := pgx.Connect(context.Background(), config.DBURL)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
-	defer conn.Close(context.Background())
-	q := db.New(conn)
+	config.DBURL = db.DBENV()
+	conn := db.Connect(config)
+	defer db.Close(conn)
+	q := sqlc.New(conn)
 
 	router := gin.Default()
 	router.ForwardedByClientIP = true
@@ -55,45 +41,24 @@ func main() {
 
 	// Todo作成エンドポイント
 	router.POST("/todos", func(c *gin.Context) { createTodo(c, q) })
+
 	// Todo取得エンドポイント
-	router.GET("/todos/:id", getTodoByID)
+	router.GET("/todos/:id", func(c *gin.Context) { getTodoByID(c, q) })
 
 	// Todo更新エンドポイント
-	router.PUT("/todos/:id", updateTodo)
+	router.PUT("/todos/:id", func(c *gin.Context) { updateTodo(c, q) })
 
 	// Todo削除エンドポイント
-	router.DELETE("/todos/:id", deleteTodo)
+	router.DELETE("/todos/:id", func(c *gin.Context) { deleteTodo(c, q) })
 
 	// Todoをすべて削除するエンドポイント
-	router.DELETE("/todos", deleteAllTodos)
+	router.DELETE("/todos", func(c *gin.Context) { deleteAllTodos(c, q) })
 
 	router.Run(":8080")
 }
 
-// func getTodos(ctx *gin.Context) {
-// 	ctx.JSON(http.StatusOK, todos)
-// }
-
-// func getTodos(q) {
-// }
-
-// func createTodo(ctx *gin.Context) {
-// var newTodo Todo
-// if err := ctx.ShouldBindJSON(&newTodo); err != nil {
-// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 	return
-// }
-
-// newTodo.ID = idCounter
-// idCounter++
-// newTodo.CreatedTime = time.Now()
-// newTodo.UpdatedTime = time.Now()
-// todos = append(todos, newTodo)
-// ctx.JSON(http.StatusCreated, newTodo)
-// }
-
-func getTodos(c *gin.Context, q *db.Queries) {
-	todos, err := q.GetTodos(context.Background())
+func getTodos(c *gin.Context, q *sqlc.Queries) {
+	todos, err := q.GetTodos(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -101,86 +66,83 @@ func getTodos(c *gin.Context, q *db.Queries) {
 	c.JSON(http.StatusOK, todos)
 }
 
-func createTodo(c *gin.Context, q *db.Queries) {
-	var req db.Todo
+func createTodo(c *gin.Context, q *sqlc.Queries) {
+	var req sqlc.Todo
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	todo, err := q.CreateTodo(c, req.Title)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, todo)
 }
 
-func getTodoByID(ctx *gin.Context) {
-	idParam := ctx.Param("id")
+func getTodoByID(c *gin.Context, q *sqlc.Queries) {
+	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	for _, todo := range todos {
-		if todo.ID == id {
-			ctx.JSON(http.StatusOK, todo)
-			return
-		}
+	todo, err := q.GetTodoByID(c, int32(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+	c.JSON(http.StatusOK, todo)
 }
 
-func updateTodo(ctx *gin.Context) {
-	idParam := ctx.Param("id")
+func updateTodo(c *gin.Context, q *sqlc.Queries) {
+	var req sqlc.UpdateTodoParams
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	req.ID = int32(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err = q.UpdateTodo(c, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	todo, err := q.GetTodoByID(c, int32(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todo)
+}
+
+func deleteTodo(c *gin.Context, q *sqlc.Queries) {
+	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	var updatedTodo Todo
-	if err := ctx.ShouldBindJSON(&updatedTodo); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	for index := range todos {
-		if todos[index].ID == id {
-			todos[index].Title = updatedTodo.Title
-			todos[index].UpdatedTime = time.Now()
-			ctx.JSON(http.StatusOK, todos[index])
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
-}
-
-func deleteTodo(ctx *gin.Context) {
-	idParam := ctx.Param("id")
-	id, err := strconv.Atoi(idParam)
+	err = q.DeleteTodo(c, int32(id))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	for index, todo := range todos {
-		if todo.ID == id {
-			todos = append(todos[:index], todos[index+1:]...)
-			ctx.JSON(http.StatusOK, todos)
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+	message := fmt.Sprintf("Deleted TodoID %d successfully.", id)
+	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 
-func deleteAllTodos(ctx *gin.Context) {
-	todos = todos[:0]
-	ctx.JSON(http.StatusOK, todos)
+func deleteAllTodos(c *gin.Context, q *sqlc.Queries) {
+	err := q.DeleteAllTodos(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	message := fmt.Sprintf("Deleted all Todos successfully.")
+	c.JSON(http.StatusOK, gin.H{"message": message})
 }
