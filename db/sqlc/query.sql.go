@@ -15,7 +15,7 @@ VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING id, title, created_time, updated_time
 `
 
-func (q *Queries) CreateTodo(ctx context.Context, title string) (Todo, error) {
+func (q *Queries) CreateTodo(ctx context.Context, title string) (*Todo, error) {
 	row := q.db.QueryRow(ctx, createTodo, title)
 	var i Todo
 	err := row.Scan(
@@ -24,7 +24,7 @@ func (q *Queries) CreateTodo(ctx context.Context, title string) (Todo, error) {
 		&i.CreatedTime,
 		&i.UpdatedTime,
 	)
-	return i, err
+	return &i, err
 }
 
 const deleteAllTodos = `-- name: DeleteAllTodos :exec
@@ -52,7 +52,7 @@ FROM todos
 WHERE id = $1
 `
 
-func (q *Queries) GetTodoByID(ctx context.Context, id int32) (Todo, error) {
+func (q *Queries) GetTodoByID(ctx context.Context, id int32) (*Todo, error) {
 	row := q.db.QueryRow(ctx, getTodoByID, id)
 	var i Todo
 	err := row.Scan(
@@ -61,7 +61,7 @@ func (q *Queries) GetTodoByID(ctx context.Context, id int32) (Todo, error) {
 		&i.CreatedTime,
 		&i.UpdatedTime,
 	)
-	return i, err
+	return &i, err
 }
 
 const getTodos = `-- name: GetTodos :many
@@ -69,13 +69,13 @@ SELECT id, title, created_time, updated_time
 FROM todos
 `
 
-func (q *Queries) GetTodos(ctx context.Context) ([]Todo, error) {
+func (q *Queries) GetTodos(ctx context.Context) ([]*Todo, error) {
 	rows, err := q.db.Query(ctx, getTodos)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Todo
+	var items []*Todo
 	for rows.Next() {
 		var i Todo
 		if err := rows.Scan(
@@ -86,7 +86,7 @@ func (q *Queries) GetTodos(ctx context.Context) ([]Todo, error) {
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -94,18 +94,26 @@ func (q *Queries) GetTodos(ctx context.Context) ([]Todo, error) {
 	return items, nil
 }
 
-const updateTodo = `-- name: UpdateTodo :exec
+const updateTodo = `-- name: UpdateTodo :one
 UPDATE todos
 SET title = $1, updated_time = CURRENT_TIMESTAMP
 WHERE id = $2
+RETURNING id, title, created_time, updated_time
 `
 
 type UpdateTodoParams struct {
-	Title string
-	ID    int32
+	Title string `json:"title"`
+	ID    int32  `json:"id"`
 }
 
-func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) error {
-	_, err := q.db.Exec(ctx, updateTodo, arg.Title, arg.ID)
-	return err
+func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) (*Todo, error) {
+	row := q.db.QueryRow(ctx, updateTodo, arg.Title, arg.ID)
+	var i Todo
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.CreatedTime,
+		&i.UpdatedTime,
+	)
+	return &i, err
 }

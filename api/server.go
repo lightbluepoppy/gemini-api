@@ -4,18 +4,18 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lightbluepoppy/gemini-api/config"
+	conf "github.com/lightbluepoppy/gemini-api/config"
 	"github.com/lightbluepoppy/gemini-api/db/sqlc"
 )
 
 type Server struct {
-	config  config.Config
+	config  conf.Config
 	router  *gin.Engine
 	Queries *sqlc.Queries
 	// store  db.Store
 }
 
-func NewServer(config config.Config) *Server {
+func NewServer(config conf.Config) *Server {
 	var router *gin.Engine
 	if config.Environment == "test" {
 		gin.SetMode(gin.ReleaseMode)
@@ -24,9 +24,12 @@ func NewServer(config config.Config) *Server {
 	} else {
 		router = gin.Default()
 	}
+	router.ForwardedByClientIP = true
+	router.SetTrustedProxies([]string{"127.0.0.1"})
 	server := &Server{
 		config: config,
 		router: router,
+		// Queries: Queries,
 		// store:  store,
 	}
 	return server

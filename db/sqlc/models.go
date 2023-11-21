@@ -9,8 +9,8 @@ import (
 )
 
 type Todo struct {
-	ID          int32
-	Title       string
-	CreatedTime pgtype.Timestamp
-	UpdatedTime pgtype.Timestamp
+	ID          int32            `json:"id"`
+	Title       string           `json:"title"`
+	CreatedTime pgtype.Timestamp `json:"created_time"`
+	UpdatedTime pgtype.Timestamp `json:"updated_time"`
 }

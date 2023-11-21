@@ -12,10 +12,11 @@ SELECT id, title, created_time, updated_time
 FROM todos
 WHERE id = $1;
 
--- name: UpdateTodo :exec
+-- name: UpdateTodo :one
 UPDATE todos
 SET title = $1, updated_time = CURRENT_TIMESTAMP
-WHERE id = $2;
+WHERE id = $2
+RETURNING id, title, created_time, updated_time;
 
 -- name: DeleteTodo :exec
 DELETE FROM todos
