@@ -5,17 +5,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	conf "github.com/lightbluepoppy/gemini-api/config"
-	"github.com/lightbluepoppy/gemini-api/db/sqlc"
+	"github.com/lightbluepoppy/gemini-api/db"
 )
 
 type Server struct {
-	config  conf.Config
-	router  *gin.Engine
-	Queries *sqlc.Queries
-	// store  db.Store
+	config conf.Config
+	router *gin.Engine
+	store  db.Store
 }
 
-func NewServer(config conf.Config) *Server {
+func NewServer(config conf.Config, store db.Store) *Server {
 	var router *gin.Engine
 	if config.Environment == "test" {
 		gin.SetMode(gin.ReleaseMode)
@@ -29,18 +28,23 @@ func NewServer(config conf.Config) *Server {
 	server := &Server{
 		config: config,
 		router: router,
-		// Queries: Queries,
-		// store:  store,
+		store:  store,
 	}
 	return server
 }
 
 func (s *Server) MountHandlers() {
 	todos := s.router.Group("/todos")
-	todos.GET("/todos", s.GetTodos)
-	todos.POST("/todos", s.CreateTodo)
-	todos.GET("/todos/:id", s.GetTodoByID)
-	todos.PUT("/todos/:id", s.UpdateTodo)
-	todos.DELETE("/todos/:id", s.DeleteTodo)
-	todos.DELETE("/todos", s.DeleteAllTodos)
+	todos.GET("", s.GetTodos)
+	todos.POST("", s.CreateTodo)
+
+	todos.GET("/:id", s.GetTodoByID)
+	todos.PUT("/:id", s.UpdateTodo)
+	todos.DELETE("/:id", s.DeleteTodo)
+
+	todos.DELETE("", s.DeleteAllTodos)
+}
+
+func (s *Server) Start(addr string) error {
+	return s.router.Run(addr)
 }

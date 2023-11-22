@@ -14,7 +14,7 @@ type Handler struct {
 }
 
 func (s *Server) GetTodos(c *gin.Context) {
-	todos, err := s.Queries.GetTodos(c)
+	todos, err := s.store.GetTodos(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -28,7 +28,7 @@ func (s *Server) CreateTodo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	todo, err := s.Queries.CreateTodo(c, req.Title)
+	todo, err := s.store.CreateTodo(c, req.Title)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -43,7 +43,7 @@ func (s *Server) GetTodoByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	todo, err := s.Queries.GetTodoByID(c, int32(id))
+	todo, err := s.store.GetTodoByID(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -64,7 +64,7 @@ func (s *Server) UpdateTodo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	todo, err := s.Queries.UpdateTodo(c, req)
+	todo, err := s.store.UpdateTodo(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -84,7 +84,7 @@ func (s *Server) DeleteTodo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err = s.Queries.DeleteTodo(c, int32(id))
+	err = s.store.DeleteTodo(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -94,7 +94,7 @@ func (s *Server) DeleteTodo(c *gin.Context) {
 }
 
 func (s *Server) DeleteAllTodos(c *gin.Context) {
-	err := s.Queries.DeleteAllTodos(c)
+	err := s.store.DeleteAllTodos(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
