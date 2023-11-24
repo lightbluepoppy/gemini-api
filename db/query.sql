@@ -1,4 +1,4 @@
--- name: GetTodos :many
+-- name: GetAllTodos :many
 SELECT id, title, created_time, updated_time
 FROM todos;
 
@@ -18,7 +18,7 @@ SET title = $1, updated_time = CURRENT_TIMESTAMP
 WHERE id = $2
 RETURNING id, title, created_time, updated_time;
 
--- name: DeleteTodo :exec
+-- name: DeleteTodoByID :exec
 DELETE FROM todos
 WHERE id = $1;
 

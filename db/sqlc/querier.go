@@ -9,11 +9,11 @@ import (
 )
 
 type Querier interface {
-	CreateTodo(ctx context.Context, title string) (*Todo, error)
+	CreateTodo(ctx context.Context, arg CreateTodoParams) (*Todo, error)
 	DeleteAllTodos(ctx context.Context) error
-	DeleteTodo(ctx context.Context, id int32) error
-	GetTodoByID(ctx context.Context, id int32) (*Todo, error)
-	GetTodos(ctx context.Context) ([]*Todo, error)
+	DeleteTodoByID(ctx context.Context, arg DeleteTodoByIDParams) error
+	GetAllTodos(ctx context.Context) ([]*Todo, error)
+	GetTodoByID(ctx context.Context, arg GetTodoByIDParams) (*Todo, error)
 	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (*Todo, error)
 }
 

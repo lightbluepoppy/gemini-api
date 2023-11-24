@@ -9,11 +9,10 @@ import (
 
 type Store interface {
 	sqlc.Querier
-	UpdateTodoTx(
-		ctx context.Context,
-		arg UpdateTodoTxParams,
-	) (*UpdateTodoTxResult, error)
+	CreateTodoTx(ctx context.Context, arg sqlc.CreateTodoParams) (*TodoTxResult, error)
+	UpdateTodoTx(ctx context.Context, arg sqlc.UpdateTodoParams) (*TodoTxResult, error)
 }
+
 type DatabaseStore struct {
 	db *pgx.Conn
 	*sqlc.Queries
@@ -26,46 +25,60 @@ func NewDatabaseStore(db *pgx.Conn) Store {
 	}
 }
 
-type UpdateTodoTxParams struct {
-	sqlc.UpdateTodoParams
-}
-
-type UpdateTodoTxResult struct {
+type TodoTxResult struct {
 	Todo *sqlc.Todo
 }
 
-func (store *DatabaseStore) UpdateTodoTx(
+func (store *DatabaseStore) CreateTodoTx(
 	ctx context.Context,
-	arg UpdateTodoTxParams,
-) (*UpdateTodoTxResult, error) {
+	arg sqlc.CreateTodoParams,
+) (*TodoTxResult, error) {
 	tx, err := store.db.Begin(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(context.Background())
 	qtx := store.Queries.WithTx(tx)
-	updateTodo, err := qtx.UpdateTodo(ctx, arg.UpdateTodoParams)
-	if err != nil {
-		return nil, err
-	}
-	todo, err := qtx.GetTodoByID(ctx, updateTodo.ID)
+	todo, err := qtx.CreateTodo(ctx, arg)
 	if err != nil {
 		return nil, err
 	}
 	if err = tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
-	return &UpdateTodoTxResult{
-		Todo: todo,
+	return &TodoTxResult{
+		todo,
 	}, nil
 }
 
-func NullableID(row string, err error) (string, error) {
-	if err == nil {
-		return row, nil
+func (store *DatabaseStore) UpdateTodoTx(
+	ctx context.Context,
+	arg sqlc.UpdateTodoParams,
+) (*TodoTxResult, error) {
+	tx, err := store.db.Begin(context.Background())
+	if err != nil {
+		return nil, err
 	}
-	if err == pgx.ErrNoRows {
-		return "", nil
+	defer tx.Rollback(context.Background())
+	qtx := store.Queries.WithTx(tx)
+	updateTodo, err := qtx.UpdateTodo(ctx, arg)
+	if err != nil {
+		return nil, err
 	}
-	return "", err
+	var req sqlc.GetTodoByIDParams
+	req.ID = updateTodo.ID
+	todo, err := qtx.GetTodoByID(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(context.Background()); err != nil {
+		return nil, err
+	}
+	return &TodoTxResult{
+		todo,
+	}, nil
+}
+
+type IDParams interface {
+	sqlc.GetTodoByIDParams | sqlc.DeleteTodoByIDParams
 }
